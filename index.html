@@ -1,0 +1,854 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agent PDF Utility - TransPerfect</title>
+    <!-- PDF.js for client-side PDF rendering -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        // Configure Tailwind with TransPerfect brand colors
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'tp-dark-blue': '#071D49',
+                        'tp-light-blue': '#6CACE4',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom animations */
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .spinner {
+            border: 3px solid rgba(108, 172, 228, 0.3);
+            border-top-color: #6CACE4;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 0.8s linear infinite;
+        }
+
+        /* Smooth transitions */
+        .feature-card {
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 24px rgba(7, 29, 73, 0.15);
+        }
+
+        /* File upload area styling */
+        .file-upload-area {
+            border: 2px dashed #6CACE4;
+            transition: all 0.3s;
+        }
+
+        .file-upload-area:hover {
+            border-color: #071D49;
+            background-color: rgba(108, 172, 228, 0.05);
+        }
+
+        .file-upload-area.drag-over {
+            background-color: rgba(108, 172, 228, 0.1);
+            border-color: #071D49;
+        }
+
+        /* PDF Preview styling */
+        .pdf-preview-container {
+            max-height: 300px;
+            overflow: hidden;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.5rem;
+            background: #f9fafb;
+            margin-bottom: 1rem;
+        }
+
+        .pdf-preview-container canvas {
+            width: 100%;
+            height: auto;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-50 min-h-screen">
+    <!-- Header -->
+    <header class="bg-tp-dark-blue text-white shadow-lg">
+        <div class="container mx-auto px-6 py-6">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <img src="https://www.transperfect.com/sites/default/files/media/image/TP_Stacked_CMYK.png"
+                        alt="TransPerfect Logo" class="h-10">
+                    <div class="border-l border-white/30 pl-4">
+                        <h1 class="text-2xl font-bold">Agent PDF Utility</h1>
+                        <p class="text-sm text-gray-300">Merge · Split · Convert · Redact</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-6 py-12">
+        <!-- Introduction -->
+        <div class="text-center mb-12">
+            <h2 class="text-3xl font-bold text-tp-dark-blue mb-4">Professional PDF Tools</h2>
+            <p class="text-gray-600 max-w-2xl mx-auto">
+                Powerful PDF manipulation at your fingertips. Merge multiple documents, extract specific pages,
+                convert PDFs to images, or securely redact sensitive text—all processed on your local server.
+            </p>
+        </div>
+
+        <!-- Feature Cards Grid -->
+        <div class="grid md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+            <!-- PDF Merger -->
+            <div class="feature-card bg-white rounded-xl shadow-md p-6">
+                <div class="flex items-center mb-4">
+                    <div
+                        class="w-12 h-12 bg-tp-light-blue rounded-lg flex items-center justify-center text-white text-2xl font-bold mr-4">
+                        ⊕
+                    </div>
+                    <h3 class="text-xl font-bold text-tp-dark-blue">PDF Merger</h3>
+                </div>
+                <p class="text-gray-600 mb-6 text-sm">Combine multiple PDF files into a single document in your desired
+                    order.</p>
+
+                <div class="file-upload-area rounded-lg p-6 text-center mb-4" id="mergeDropZone">
+                    <svg class="mx-auto h-12 w-12 text-tp-light-blue mb-2" stroke="currentColor" fill="none"
+                        viewBox="0 0 48 48">
+                        <path
+                            d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                    <p class="text-sm text-gray-600 mb-2">Drag & drop files or</p>
+                    <label class="cursor-pointer">
+                        <span
+                            class="bg-tp-light-blue text-white px-4 py-2 rounded-lg hover:bg-tp-dark-blue transition inline-block text-sm font-semibold">
+                            Browse Files
+                        </span>
+                        <input type="file" id="mergeFiles" accept=".pdf" multiple class="hidden">
+                    </label>
+                </div>
+
+                <div id="mergeFileList" class="mb-4 text-sm text-gray-600"></div>
+
+                <button onclick="mergePDFs()" id="mergeBtn"
+                    class="w-full bg-tp-dark-blue text-white py-3 rounded-lg hover:bg-opacity-90 transition font-semibold disabled:opacity-50 disabled:cursor-not-allowed">
+                    Merge PDFs
+                </button>
+
+                <div id="mergeStatus" class="mt-4 text-sm"></div>
+            </div>
+
+            <!-- PDF Splitter -->
+            <div class="feature-card bg-white rounded-xl shadow-md p-6">
+                <div class="flex items-center mb-4">
+                    <div
+                        class="w-12 h-12 bg-tp-light-blue rounded-lg flex items-center justify-center text-white text-2xl font-bold mr-4">
+                        ✂
+                    </div>
+                    <h3 class="text-xl font-bold text-tp-dark-blue">PDF Splitter</h3>
+                </div>
+                <p class="text-gray-600 mb-6 text-sm">Extract specific pages from a PDF using page ranges (e.g., "1-3,
+                    5, 7-9").</p>
+
+                <div class="file-upload-area rounded-lg p-6 text-center mb-4" id="splitDropZone">
+                    <svg class="mx-auto h-12 w-12 text-tp-light-blue mb-2" stroke="currentColor" fill="none"
+                        viewBox="0 0 48 48">
+                        <path
+                            d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                    <p class="text-sm text-gray-600 mb-2">Drag & drop PDF or</p>
+                    <label class="cursor-pointer">
+                        <span
+                            class="bg-tp-light-blue text-white px-4 py-2 rounded-lg hover:bg-tp-dark-blue transition inline-block text-sm font-semibold">
+                            Browse File
+                        </span>
+                        <input type="file" id="splitFile" accept=".pdf" class="hidden">
+                    </label>
+                </div>
+
+                <div id="splitFileName" class="mb-4 text-sm text-gray-600"></div>
+
+                <div class="mb-4">
+                    <label class="block text-sm font-semibold text-tp-dark-blue mb-2">Page Range:</label>
+                    <input type="text" id="pageRange" placeholder="e.g., 1-3, 5, 7-9"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-tp-light-blue text-sm">
+                    <p class="text-xs text-gray-500 mt-1">Enter page numbers or ranges separated by commas</p>
+                </div>
+
+                <button onclick="splitPDF()" id="splitBtn"
+                    class="w-full bg-tp-dark-blue text-white py-3 rounded-lg hover:bg-opacity-90 transition font-semibold disabled:opacity-50 disabled:cursor-not-allowed">
+                    Split PDF
+                </button>
+
+                <div id="splitStatus" class="mt-4 text-sm"></div>
+            </div>
+
+            <!-- PDF to Image -->
+            <div class="feature-card bg-white rounded-xl shadow-md p-6">
+                <div class="flex items-center mb-4">
+                    <div
+                        class="w-12 h-12 bg-tp-light-blue rounded-lg flex items-center justify-center text-white text-2xl font-bold mr-4">
+                        🖼
+                    </div>
+                    <h3 class="text-xl font-bold text-tp-dark-blue">PDF to Images</h3>
+                </div>
+                <p class="text-gray-600 mb-6 text-sm">Convert each page of a PDF into high-quality PNG images, packaged
+                    in a ZIP file.</p>
+
+                <div class="file-upload-area rounded-lg p-6 text-center mb-4" id="convertDropZone">
+                    <svg class="mx-auto h-12 w-12 text-tp-light-blue mb-2" stroke="currentColor" fill="none"
+                        viewBox="0 0 48 48">
+                        <path
+                            d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                    <p class="text-sm text-gray-600 mb-2">Drag & drop PDF or</p>
+                    <label class="cursor-pointer">
+                        <span
+                            class="bg-tp-light-blue text-white px-4 py-2 rounded-lg hover:bg-tp-dark-blue transition inline-block text-sm font-semibold">
+                            Browse File
+                        </span>
+                        <input type="file" id="convertFile" accept=".pdf" class="hidden">
+                    </label>
+                </div>
+
+                <div id="convertFileName" class="mb-4 text-sm text-gray-600"></div>
+
+                <button onclick="convertPDF()" id="convertBtn"
+                    class="w-full bg-tp-dark-blue text-white py-3 rounded-lg hover:bg-opacity-90 transition font-semibold disabled:opacity-50 disabled:cursor-not-allowed">
+                    Convert to Images
+                </button>
+
+                <div id="convertStatus" class="mt-4 text-sm"></div>
+            </div>
+
+            <!-- PDF Redactor -->
+            <div class="feature-card bg-white rounded-xl shadow-md p-6">
+                <div class="flex items-center mb-4">
+                    <div
+                        class="w-12 h-12 bg-tp-light-blue rounded-lg flex items-center justify-center text-white text-xl font-bold mr-4">
+                        ▉▉
+                    </div>
+                    <h3 class="text-xl font-bold text-tp-dark-blue">PDF Redactor</h3>
+                </div>
+                <p class="text-gray-600 mb-6 text-sm">Search and permanently remove sensitive text with secure black
+                    rectangle redaction.</p>
+
+                <div class="file-upload-area rounded-lg p-6 text-center mb-4" id="redactDropZone">
+                    <svg class="mx-auto h-12 w-12 text-tp-light-blue mb-2" stroke="currentColor" fill="none"
+                        viewBox="0 0 48 48">
+                        <path
+                            d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                    <p class="text-sm text-gray-600 mb-2">Drag & drop PDF or</p>
+                    <label class="cursor-pointer">
+                        <span
+                            class="bg-tp-light-blue text-white px-4 py-2 rounded-lg hover:bg-tp-dark-blue transition inline-block text-sm font-semibold">
+                            Browse File
+                        </span>
+                        <input type="file" id="redactFile" accept=".pdf" class="hidden">
+                    </label>
+                </div>
+
+                <!-- PDF Preview -->
+                <div id="redactPreviewContainer" class="pdf-preview-container" style="display: none;">
+                    <canvas id="redactPreview"></canvas>
+                    <div class="text-center py-2 bg-gray-100 text-xs text-gray-600">
+                        <span id="pageInfo">Preview - Page 1</span>
+                    </div>
+                </div>
+
+                <div id="redactFileName" class="mb-4 text-sm text-gray-600"></div>
+
+                <div class="mb-4">
+                    <label class="block text-sm font-semibold text-tp-dark-blue mb-2">Text to Redact:</label>
+                    <input type="text" id="redactText" placeholder="e.g., SSN, Confidential, John Doe"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-tp-light-blue text-sm">
+                    <label class="flex items-center mt-2 text-sm">
+                        <input type="checkbox" id="caseSensitive" class="mr-2">
+                        <span class="text-gray-700">Case sensitive</span>
+                    </label>
+                </div>
+
+                <button onclick="redactPDF()" id="redactBtn"
+                    class="w-full bg-tp-dark-blue text-white py-3 rounded-lg hover:bg-opacity-90 transition font-semibold disabled:opacity-50 disabled:cursor-not-allowed">
+                    Redact & Download
+                </button>
+
+                <div id="redactStatus" class="mt-4 text-sm"></div>
+            </div>
+
+            <!-- PDF Stamp -->
+            <div class="feature-card bg-white rounded-xl shadow-md p-6">
+                <div class="flex items-center mb-4">
+                    <div
+                        class="w-12 h-12 bg-tp-light-blue rounded-lg flex items-center justify-center text-white text-xl font-bold mr-4">
+                        🏷️
+                    </div>
+                    <h3 class="text-xl font-bold text-tp-dark-blue">PDF Stamp</h3>
+                </div>
+                <p class="text-gray-600 mb-6 text-sm">Apply a translucent watermark text to every page of your PDF.</p>
+
+                <div class="file-upload-area rounded-lg p-6 text-center mb-4" id="stampDropZone">
+                    <svg class="mx-auto h-12 w-12 text-tp-light-blue mb-2" stroke="currentColor" fill="none"
+                        viewBox="0 0 48 48">
+                        <path
+                            d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                    <p class="text-sm text-gray-600 mb-2">Drag & drop PDF or</p>
+                    <label class="cursor-pointer">
+                        <span
+                            class="bg-tp-light-blue text-white px-4 py-2 rounded-lg hover:bg-tp-dark-blue transition inline-block text-sm font-semibold">
+                            Browse File
+                        </span>
+                        <input type="file" id="stampFile" accept=".pdf" class="hidden">
+                    </label>
+                </div>
+
+                <div id="stampFileName" class="mb-4 text-sm text-gray-600"></div>
+
+                <div class="mb-4">
+                    <label class="block text-sm font-semibold text-tp-dark-blue mb-2">Stamp Text:</label>
+                    <input type="text" id="stampText" placeholder="e.g., DRAFT, CONFIDENTIAL"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-tp-light-blue text-sm">
+                </div>
+
+                <div class="w-2 h-2 rounded-full bg-gray-400 mr-2"></div>
+                <span>Checking server...</span>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-tp-dark-blue text-white py-6 mt-16">
+        <div class="container mx-auto px-6 text-center">
+            <p class="text-sm text-gray-300">Agent PDF Utility • Powered by TransPerfect Technology</p>
+        </div>
+    </footer>
+
+    <script>
+        // Configure PDF.js worker
+        pdfjsLib.GlobalWorkerOptions.workerSrc =
+            'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+        const API_BASE = 'http://localhost:5000/api';
+
+        // Check server health on page load
+        window.addEventListener('load', checkServerHealth);
+
+        async function checkServerHealth() {
+            const statusEl = document.getElementById('serverStatus');
+            try {
+                const response = await fetch('http://localhost:5000/health');
+                if (response.ok) {
+                    statusEl.innerHTML = '<div class="w-2 h-2 rounded-full bg-green-500 mr-2"></div><span>Server online</span>';
+                    statusEl.className = 'inline-flex items-center px-4 py-2 rounded-full bg-green-100 text-green-700 text-sm';
+                } else {
+                    throw new Error('Server not responding');
+                }
+            } catch (error) {
+                statusEl.innerHTML = '<div class="w-2 h-2 rounded-full bg-red-500 mr-2"></div><span>Server offline - Please start server.py</span>';
+                statusEl.className = 'inline-flex items-center px-4 py-2 rounded-full bg-red-100 text-red-700 text-sm';
+            }
+        }
+
+        // Utility function to show status messages
+        function showStatus(elementId, message, type = 'info') {
+            const el = document.getElementById(elementId);
+            const colors = {
+                info: 'text-blue-600',
+                success: 'text-green-600',
+                error: 'text-red-600',
+                loading: 'text-tp-light-blue'
+            };
+            el.innerHTML = `<span class="${colors[type]} font-semibold">${message}</span>`;
+        }
+
+        function showLoading(elementId, message = 'Processing...') {
+            const el = document.getElementById(elementId);
+            el.innerHTML = `
+                <div class="flex items-center justify-center">
+                    <div class="spinner mr-3"></div>
+                    <span class="text-tp-light-blue font-semibold">${message}</span>
+                </div>
+            `;
+        }
+
+        // =============== PDF MERGER ===============
+
+        // Drag and drop for merge
+        const mergeDropZone = document.getElementById('mergeDropZone');
+        const mergeFilesInput = document.getElementById('mergeFiles');
+
+        mergeDropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            mergeDropZone.classList.add('drag-over');
+        });
+
+        mergeDropZone.addEventListener('dragleave', () => {
+            mergeDropZone.classList.remove('drag-over');
+        });
+
+        mergeDropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            mergeDropZone.classList.remove('drag-over');
+            mergeFilesInput.files = e.dataTransfer.files;
+            updateMergeFileList();
+        });
+
+        mergeFilesInput.addEventListener('change', updateMergeFileList);
+
+        function updateMergeFileList() {
+            const files = mergeFilesInput.files;
+            const listEl = document.getElementById('mergeFileList');
+
+            if (files.length > 0) {
+                listEl.innerHTML = `<strong class="text-tp-dark-blue">${files.length} file(s) selected:</strong><br>` +
+                    Array.from(files).map(f => `• ${f.name}`).join('<br>');
+            } else {
+                listEl.innerHTML = '';
+            }
+        }
+
+        async function mergePDFs() {
+            const files = mergeFilesInput.files;
+            const btn = document.getElementById('mergeBtn');
+
+            if (files.length < 2) {
+                showStatus('mergeStatus', 'Please select at least 2 PDF files', 'error');
+                return;
+            }
+
+            const formData = new FormData();
+            for (let file of files) {
+                formData.append('files[]', file);
+            }
+
+            btn.disabled = true;
+            showLoading('mergeStatus', 'Merging PDFs...');
+
+            try {
+                const response = await fetch(`${API_BASE}/merge`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (response.ok) {
+                    const blob = await response.blob();
+                    downloadFile(blob, 'merged.pdf');
+                    showStatus('mergeStatus', '✓ PDFs merged successfully!', 'success');
+                    mergeFilesInput.value = '';
+                    updateMergeFileList();
+                } else {
+                    const error = await response.json();
+                    showStatus('mergeStatus', `Error: ${error.error}`, 'error');
+                }
+            } catch (error) {
+                showStatus('mergeStatus', `Error: ${error.message}`, 'error');
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        // =============== PDF SPLITTER ===============
+
+        const splitDropZone = document.getElementById('splitDropZone');
+        const splitFileInput = document.getElementById('splitFile');
+
+        splitDropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            splitDropZone.classList.add('drag-over');
+        });
+
+        splitDropZone.addEventListener('dragleave', () => {
+            splitDropZone.classList.remove('drag-over');
+        });
+
+        splitDropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            splitDropZone.classList.remove('drag-over');
+            splitFileInput.files = e.dataTransfer.files;
+            updateSplitFileName();
+        });
+
+        splitFileInput.addEventListener('change', updateSplitFileName);
+
+        function updateSplitFileName() {
+            const file = splitFileInput.files[0];
+            const nameEl = document.getElementById('splitFileName');
+
+            if (file) {
+                nameEl.innerHTML = `<strong class="text-tp-dark-blue">Selected:</strong> ${file.name}`;
+            } else {
+                nameEl.innerHTML = '';
+            }
+        }
+
+        async function splitPDF() {
+            const file = splitFileInput.files[0];
+            const pageRange = document.getElementById('pageRange').value.trim();
+            const btn = document.getElementById('splitBtn');
+
+            if (!file) {
+                showStatus('splitStatus', 'Please select a PDF file', 'error');
+                return;
+            }
+
+            if (!pageRange) {
+                showStatus('splitStatus', 'Please enter a page range', 'error');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('pages', pageRange);
+
+            btn.disabled = true;
+            showLoading('splitStatus', 'Splitting PDF...');
+
+            try {
+                const response = await fetch(`${API_BASE}/split`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (response.ok) {
+                    const blob = await response.blob();
+                    downloadFile(blob, 'split.pdf');
+                    showStatus('splitStatus', '✓ PDF split successfully!', 'success');
+                    splitFileInput.value = '';
+                    document.getElementById('pageRange').value = '';
+                    updateSplitFileName();
+                } else {
+                    const error = await response.json();
+                    showStatus('splitStatus', `Error: ${error.error}`, 'error');
+                }
+            } catch (error) {
+                showStatus('splitStatus', `Error: ${error.message}`, 'error');
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        // =============== PDF TO IMAGE CONVERTER ===============
+
+        const convertDropZone = document.getElementById('convertDropZone');
+        const convertFileInput = document.getElementById('convertFile');
+
+        convertDropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            convertDropZone.classList.add('drag-over');
+        });
+
+        convertDropZone.addEventListener('dragleave', () => {
+            convertDropZone.classList.remove('drag-over');
+        });
+
+        convertDropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            convertDropZone.classList.remove('drag-over');
+            convertFileInput.files = e.dataTransfer.files;
+            updateConvertFileName();
+        });
+
+        convertFileInput.addEventListener('change', updateConvertFileName);
+
+        function updateConvertFileName() {
+            const file = convertFileInput.files[0];
+            const nameEl = document.getElementById('convertFileName');
+
+            if (file) {
+                nameEl.innerHTML = `<strong class="text-tp-dark-blue">Selected:</strong> ${file.name}`;
+            } else {
+                nameEl.innerHTML = '';
+            }
+        }
+
+        async function convertPDF() {
+            const file = convertFileInput.files[0];
+            const btn = document.getElementById('convertBtn');
+
+            if (!file) {
+                showStatus('convertStatus', 'Please select a PDF file', 'error');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            btn.disabled = true;
+            showLoading('convertStatus', 'Converting PDF to images...');
+
+            try {
+                const response = await fetch(`${API_BASE}/convert`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (response.ok) {
+                    const blob = await response.blob();
+                    downloadFile(blob, 'pdf_images.zip');
+                    showStatus('convertStatus', '✓ PDF converted successfully!', 'success');
+                    convertFileInput.value = '';
+                    updateConvertFileName();
+                } else {
+                    const error = await response.json();
+                    showStatus('convertStatus', `Error: ${error.error}`, 'error');
+                }
+            } catch (error) {
+                showStatus('convertStatus', `Error: ${error.message}`, 'error');
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        // =============== PDF REDACTOR ===============
+
+        const redactDropZone = document.getElementById('redactDropZone');
+        const redactFileInput = document.getElementById('redactFile');
+        let currentPdfDoc = null;
+
+        redactDropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            redactDropZone.classList.add('drag-over');
+        });
+
+        redactDropZone.addEventListener('dragleave', () => {
+            redactDropZone.classList.remove('drag-over');
+        });
+
+        redactDropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            redactDropZone.classList.remove('drag-over');
+            redactFileInput.files = e.dataTransfer.files;
+            updateRedactFileName();
+        });
+
+        redactFileInput.addEventListener('change', updateRedactFileName);
+
+        async function updateRedactFileName() {
+            const file = redactFileInput.files[0];
+            const nameEl = document.getElementById('redactFileName');
+
+            if (file) {
+                nameEl.innerHTML = `<strong class="text-tp-dark-blue">Selected:</strong> ${file.name}`;
+                // Render PDF preview
+                await renderPdfPreview(file);
+            } else {
+                nameEl.innerHTML = '';
+                document.getElementById('redactPreviewContainer').style.display = 'none';
+            }
+        }
+
+        async function renderPdfPreview(file) {
+            try {
+                const fileReader = new FileReader();
+
+                fileReader.onload = async function () {
+                    // Load PDF
+                    const loadingTask = pdfjsLib.getDocument({ data: this.result });
+                    currentPdfDoc = await loadingTask.promise;
+
+                    // Update page info
+                    const totalPages = currentPdfDoc.numPages;
+                    document.getElementById('pageInfo').textContent =
+                        `Preview - Page 1 of ${totalPages}`;
+
+                    // Render first page
+                    await renderPage(1);
+
+                    // Show preview container
+                    document.getElementById('redactPreviewContainer').style.display = 'block';
+                };
+
+                fileReader.readAsArrayBuffer(file);
+            } catch (error) {
+                console.error('Error rendering PDF preview:', error);
+            }
+        }
+
+        async function renderPage(pageNum) {
+            const page = await currentPdfDoc.getPage(pageNum);
+            const canvas = document.getElementById('redactPreview');
+            const context = canvas.getContext('2d');
+
+            // Set viewport (scale for preview)
+            const viewport = page.getViewport({ scale: 1.0 });
+            canvas.height = viewport.height;
+            canvas.width = viewport.width;
+
+            // Render PDF page to canvas
+            await page.render({
+                canvasContext: context,
+                viewport: viewport
+            }).promise;
+        }
+
+        async function redactPDF() {
+            const file = redactFileInput.files[0];
+            const searchText = document.getElementById('redactText').value.trim();
+            const caseSensitive = document.getElementById('caseSensitive').checked;
+            const btn = document.getElementById('redactBtn');
+
+            if (!file) {
+                showStatus('redactStatus', 'Please select a PDF file', 'error');
+                return;
+            }
+
+            if (!searchText) {
+                showStatus('redactStatus', 'Please enter text to redact', 'error');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('search_text', searchText);
+            formData.append('case_sensitive', caseSensitive);
+
+            btn.disabled = true;
+            showLoading('redactStatus', 'Searching and redacting text...');
+
+            try {
+                const response = await fetch(`${API_BASE}/redact`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (response.ok) {
+                    const blob = await response.blob();
+                    downloadFile(blob, 'redacted.pdf');
+
+                    // Get redaction count from header
+                    const count = response.headers.get('X-Redaction-Count') || '0';
+                    showStatus('redactStatus',
+                        `✓ Redacted ${count} instance(s) successfully!`, 'success');
+
+                    // Clear inputs
+                    redactFileInput.value = '';
+                    document.getElementById('redactText').value = '';
+                    document.getElementById('caseSensitive').checked = false;
+                    updateRedactFileName();
+                } else {
+                    const error = await response.json();
+                    showStatus('redactStatus', `Error: ${error.error}`, 'error');
+                }
+            } catch (error) {
+                showStatus('redactStatus', `Error: ${error.message}`, 'error');
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        // =============== PDF STAMPER ===============
+
+        const stampDropZone = document.getElementById('stampDropZone');
+        const stampFileInput = document.getElementById('stampFile');
+
+        stampDropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            stampDropZone.classList.add('drag-over');
+        });
+
+        stampDropZone.addEventListener('dragleave', () => {
+            stampDropZone.classList.remove('drag-over');
+        });
+
+        stampDropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            stampDropZone.classList.remove('drag-over');
+            stampFileInput.files = e.dataTransfer.files;
+            updateStampFileName();
+        });
+
+        stampFileInput.addEventListener('change', updateStampFileName);
+
+        function updateStampFileName() {
+            const file = stampFileInput.files[0];
+            const nameEl = document.getElementById('stampFileName');
+
+            if (file) {
+                nameEl.innerHTML = `<strong class="text-tp-dark-blue">Selected:</strong> ${file.name}`;
+            } else {
+                nameEl.innerHTML = '';
+            }
+        }
+
+        async function stampPDF() {
+            const file = stampFileInput.files[0];
+            const stampText = document.getElementById('stampText').value.trim();
+            const btn = document.getElementById('stampBtn');
+
+            if (!file) {
+                showStatus('stampStatus', 'Please select a PDF file', 'error');
+                return;
+            }
+
+            if (!stampText) {
+                showStatus('stampStatus', 'Please enter stamp text', 'error');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('stamp_text', stampText);
+
+            btn.disabled = true;
+            showLoading('stampStatus', 'Applying stamp...');
+
+            try {
+                const response = await fetch(`${API_BASE}/stamp`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (response.ok) {
+                    const blob = await response.blob();
+                    downloadFile(blob, 'stamped.pdf');
+                    showStatus('stampStatus', '✓ Stamp applied successfully!', 'success');
+
+                    // Clear inputs
+                    stampFileInput.value = '';
+                    document.getElementById('stampText').value = '';
+                    updateStampFileName();
+                } else {
+                    const error = await response.json();
+                    showStatus('stampStatus', `Error: ${error.error}`, 'error');
+                }
+            } catch (error) {
+                showStatus('stampStatus', `Error: ${error.message}`, 'error');
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        // =============== UTILITY FUNCTIONS ===============
+
+        function downloadFile(blob, filename) {
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+        }
+    </script>
+</body>
+
+</html>
